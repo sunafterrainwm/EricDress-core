@@ -1,0 +1,5 @@
+node_modules/
+build/
+config/**
+!config/config.example.ts
+!config/config.type.d.ts
