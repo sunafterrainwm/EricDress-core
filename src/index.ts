@@ -1,8 +1,3 @@
-/**
- * Warning
- * 如果你無法確定你的更改是否會損壞
- * 請不要任意變更此檔案
- */
 import moduleAlias = require( 'module-alias' );
 import path = require( 'path' );
 moduleAlias.addAliases( {
@@ -97,7 +92,7 @@ winston.info( 'EricDress v1.0.0' );
 winston.info( '' );
 winston.info( 'Starting Telegram bot...' );
 
-const bot = new Telegraf( process.env.TOKEN );
+const bot = new Telegraf( config.token );
 
 function random<T>( arr: T[] ): T {
 	return arr.length > 1 ? arr[ Math.floor( Math.random() * arr.length ) ] : arr[ 0 ];
@@ -167,11 +162,11 @@ function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult {
 	} );
 }
 
-bot.on( 'inline_query', function ( ctx ) {
+bot.on( 'inline_query', async function ( ctx ) {
 	winston.debug( Util.format( '[new] from: %d, query: %s', ctx.inlineQuery.from.id, ctx.inlineQuery.query ) );
 	const query = random( contents );
 	try {
-		return ctx.answerInlineQuery( [
+		return await ctx.answerInlineQuery( [
 			buildInlineQuery( query, ctx )
 		], {
 			cache_time: 0
@@ -194,6 +189,10 @@ bot.on( 'inline_query', function ( ctx ) {
 			cache_time: 0
 		} );
 	}
+} );
+
+bot.catch( function ( err: Error ) {
+	winston.error( `TelegramBot error: ${ err.message }`, err );
 } );
 
 if ( config.launchType === 'webhook' ) {

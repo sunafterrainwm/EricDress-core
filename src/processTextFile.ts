@@ -1,8 +1,3 @@
-/**
- * Warning
- * 如果你無法確定你的更改是否會損壞
- * 請不要任意變更此檔案
- */
 import fs from 'fs';
 import path from 'path';
 

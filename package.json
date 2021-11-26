@@ -14,7 +14,6 @@
 		"build": "tsc"
 	},
 	"dependencies": {
-		"@types/jquery": "^3.5.7",
 		"jquery": "^3.6.0",
 		"jsdom": "^18.0.0",
 		"module-alias": "^2.2.2",
@@ -24,8 +23,10 @@
 		"winston": "^3.3.3"
 	},
 	"devDependencies": {
+		"@types/jquery": "^3.5.7",
 		"@types/jsdom": "^16.2.13",
 		"@types/module-alias": "^2.0.1",
+		"@types/node": "^16.11.10",
 		"@types/node-fetch": "^2.5.12",
 		"@typescript-eslint/eslint-plugin": "^4.33.0",
 		"@typescript-eslint/parser": "^4.33.0",
