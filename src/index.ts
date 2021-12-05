@@ -17,6 +17,9 @@ import { InlineQueryResult, InputMessageContent } from 'typegram/inline';
 import { config } from 'config/config';
 import { processTextFile } from 'src/processTextFile';
 
+const QUERY_RESPONSE_TIMEOUT = 'query is too old and response timeout expired or query ID is invalid';
+const CANNOT_PARSE_ENTITIES = 'Can\'t parse entities';
+
 // 日志初始化
 const logFormat: winston.Logform.FormatWrap = winston.format( function ( info: winston.Logform.TransformableInfo ) {
 	info.level = info.level.toUpperCase();
@@ -171,11 +174,25 @@ bot.on( 'inline_query', async function ( ctx ) {
 		], {
 			cache_time: 0
 		} );
-	} catch ( e ) {
-		if ( String( e ).match( 'Can\'t parse entities' ) ) {
+	} catch ( ex ) {
+		if ( String( ex ).match( QUERY_RESPONSE_TIMEOUT ) ) {
+			winston.warn( Util.format( 'response timeout expired, check your server config' ) );
+			try {
+				return await ctx.answerInlineQuery( [
+					buildInlineQuery( query, ctx )
+				], {
+					cache_time: 60
+				} );
+			} catch ( ex2 ) {
+				if ( String( ex2 ).match( QUERY_RESPONSE_TIMEOUT ) && ex2 instanceof Error ) {
+					ex2.message += ' (again)';
+				}
+				winston.error( ex2 );
+			}
+		} else if ( String( ex ).match( CANNOT_PARSE_ENTITIES ) ) {
 			winston.warn( Util.format( 'string "%s" can\'t parse as html.', query ) );
 		} else {
-			winston.error( e );
+			winston.error( ex );
 		}
 		return ctx.answerInlineQuery( [ {
 			type: 'article',
@@ -186,7 +203,7 @@ bot.on( 'inline_query', async function ( ctx ) {
 				message_text: random( errors )
 			}
 		} ], {
-			cache_time: 0
+			cache_time: 30
 		} );
 	}
 } );
