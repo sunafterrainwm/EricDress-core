@@ -24,8 +24,7 @@
 		}
 	},
 	"include": [
-		"src/index.ts",
-		"src/processTextFile.ts",
+		"src/*.ts",
 		"config/*.ts"
 	]
 }

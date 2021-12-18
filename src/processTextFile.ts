@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import type { TextFile } from 'config/config.type';
+import type { TextOrFile } from 'config/config.type';
 
 function pathReslove( p: string ) {
 	try {
@@ -11,7 +11,7 @@ function pathReslove( p: string ) {
 	}
 }
 
-export function processTextFile( conf: TextFile ): string[] {
+export function processTextFile( conf: TextOrFile ): string[] {
 	if ( typeof conf === 'string' ) {
 		return [ conf ];
 	} else if ( conf instanceof Array ) {

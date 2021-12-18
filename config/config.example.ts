@@ -9,12 +9,6 @@ export const config: ConfigTS = {
 	// 使用 polling 還是 webhook
 	launchType: 'polling',
 
-	// 使用 polling
-	polling: {
-		timeout: 30, // 幾秒內無法連到伺服器就報超時
-		limit: 100 // 單次檢索的最大值
-	},
-
 	// 使用 Webhook 模式，參見 https://core.telegram.org/bots/webhooks
 	webhook: {
 		port: 0, // Webhook 埠，為 0 時不啟用 Webhook
@@ -72,5 +66,12 @@ export const config: ConfigTS = {
 		},
 
 		error: '初始化失敗。'
-	}
+	},
+
+	// 硬封鎖用戶
+	// 同時會封鎖指令和inline query
+	blockFromID: [],
+
+	// 硬封鎖群組
+	ignoreChatID: []
 };

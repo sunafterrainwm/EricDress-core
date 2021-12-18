@@ -13,8 +13,10 @@ import Util from 'util';
 import { JSDOM } from 'jsdom';
 import { Telegraf, Context } from 'telegraf';
 import { InlineQueryResult, InputMessageContent } from 'typegram/inline';
+import * as TT from 'typegram';
 
 import { config } from 'config/config';
+import { LogToChannel } from 'src/logToChannel';
 import { processTextFile } from 'src/processTextFile';
 
 const QUERY_RESPONSE_TIMEOUT = 'query is too old and response timeout expired or query ID is invalid';
@@ -97,6 +99,13 @@ winston.info( 'Starting Telegram bot...' );
 
 const bot = new Telegraf( config.token );
 
+if ( config.logging.logToChannel ) {
+	winston.add( new LogToChannel( {
+		telegraf: bot,
+		logChannel: config.logging.logToChannel
+	} ) );
+}
+
 function random<T>( arr: T[] ): T {
 	return arr.length > 1 ? arr[ Math.floor( Math.random() * arr.length ) ] : arr[ 0 ];
 }
@@ -125,7 +134,7 @@ function getRandomID(): string {
 	return Math.floor( +new Date() + Math.random() * 10000 ).toString( 16 );
 }
 
-function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult {
+function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult[] {
 	const result: {
 		id: string;
 		title: string;
@@ -140,7 +149,7 @@ function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult {
 	if ( /^<img.*>$/.exec( text ) ) {
 		try {
 			const $img: JQuery<HTMLImageElement> = jQuery( jQuery.parseHTML( '<div>' + text + '</div>' ) ).find( 'img' );
-			return Object.assign<typeof result, {
+			return [ Object.assign<typeof result, {
 				type: 'photo';
 				photo_url: string;
 				caption: string;
@@ -148,12 +157,12 @@ function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult {
 				type: 'photo',
 				photo_url: $img.attr( 'src' ),
 				caption: getFormatText( $img.attr( 'alt' ), ctx, true )
-			} );
+			} ) ];
 		} catch ( e ) {
 			winston.error( Util.format( 'Failture: fail to parse img html "%s": %s', text, e ) );
 		}
 	}
-	return Object.assign<typeof result, {
+	return [ Object.assign<typeof result, {
 		type: 'article';
 		input_message_content: InputMessageContent;
 	}>( result, {
@@ -162,54 +171,73 @@ function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult {
 			message_text: getFormatText( text, ctx ),
 			parse_mode: 'HTML'
 		}
+	} ) ];
+}
+
+function buildCommandReply( ctx: Context ): Promise<TT.Message> {
+	const text = random( contents );
+	if ( /^<img.*>$/.exec( text ) ) {
+		try {
+			const $img: JQuery<HTMLImageElement> = jQuery( jQuery.parseHTML( '<div>' + text + '</div>' ) ).find( 'img' );
+			return ctx.replyWithPhoto( $img.attr( 'src' ), {
+				caption: getFormatText( $img.attr( 'alt' ), ctx, true ),
+				parse_mode: 'HTML'
+			} );
+		} catch ( e ) {
+			winston.error( Util.format( 'Failture: fail to parse img html "%s": %s', text, e ) );
+		}
+	}
+	return ctx.reply( text, {
+		parse_mode: 'HTML'
 	} );
 }
 
-bot.on( 'inline_query', async function ( ctx ) {
-	winston.debug( Util.format( '[new] from: %d, query: %s', ctx.inlineQuery.from.id, ctx.inlineQuery.query ) );
+bot.on( 'inline_query', function ( ctx ) {
+	winston.debug( Util.format( '[inline] from: %d, query: %s', ctx.inlineQuery.from.id, ctx.inlineQuery.query ) );
 	const query = random( contents );
-	try {
-		return await ctx.answerInlineQuery( [
-			buildInlineQuery( query, ctx )
-		], {
-			cache_time: 0
-		} );
-	} catch ( ex ) {
+
+	return ctx.answerInlineQuery( [
+		...buildInlineQuery( query, ctx )
+	], {
+		cache_time: 0
+	} ).catch( function ( ex ) {
 		if ( String( ex ).match( QUERY_RESPONSE_TIMEOUT ) ) {
 			winston.warn( Util.format( 'response timeout expired, check your server config' ) );
-			try {
-				return await ctx.answerInlineQuery( [
-					buildInlineQuery( query, ctx )
-				], {
-					cache_time: 60
-				} );
-			} catch ( ex2 ) {
-				if ( String( ex2 ).match( QUERY_RESPONSE_TIMEOUT ) && ex2 instanceof Error ) {
-					ex2.message += ' (again)';
-				}
-				winston.error( ex2 );
-			}
+			return;
 		} else if ( String( ex ).match( CANNOT_PARSE_ENTITIES ) ) {
 			winston.warn( Util.format( 'string "%s" can\'t parse as html.', query ) );
 		} else {
 			winston.error( ex );
 		}
-		return ctx.answerInlineQuery( [ {
-			type: 'article',
-			id: getRandomID(),
-			title: 'error！',
-			description: 'error！',
-			input_message_content: {
-				message_text: random( errors )
+
+		ctx.answerInlineQuery( [
+			{
+				type: 'article',
+				id: getRandomID(),
+				title: '錯誤',
+				description: '錯誤',
+				input_message_content: {
+					message_text: random( errors )
+				}
 			}
-		} ], {
-			cache_time: 30
+		], {
+			cache_time: 0
 		} );
-	}
+	} );
 } );
 
-bot.catch( function ( err: Error ) {
-	winston.error( `TelegramBot error: ${ err.message }`, err );
+bot.command( 'ericadress', async function ( ctx ) {
+	winston.debug( Util.format(
+		'[cmd] chat: %d, from: %d, text: %s',
+		ctx.chat.id,
+		ctx.message.sender_chat?.id || ctx.from.id,
+		ctx.message.text
+	) );
+	return buildCommandReply( ctx );
+} );
+
+bot.catch( function ( err ) {
+	winston.error( 'TelegramBot error:', err );
 } );
 
 if ( config.launchType === 'webhook' ) {
@@ -253,9 +281,7 @@ if ( config.launchType === 'webhook' ) {
 		winston.info( `Telegram bot has started at ${ config.webhook.url }.` );
 	} );
 } else {
-	bot.launch( {
-		polling: config.polling
-	} ).then( function () {
+	bot.launch().then( function () {
 		winston.info( 'Telegram bot has started.' );
 	} );
 }

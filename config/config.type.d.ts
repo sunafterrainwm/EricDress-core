@@ -1,6 +1,6 @@
-import { LaunchPollingOptions, LaunchWebhookOptions } from 'telegraf/typings/telegraf';
+import { Telegraf } from 'telegraf/typings/telegraf';
 
-export type TextFile = string | string[] | {
+export type TextOrFile = string | string[] | {
 	path: string;
 
 	parsemode?: 'txt' | 'json';
@@ -17,9 +17,7 @@ export interface ConfigTS {
 	 */
 	launchType?: 'polling' | 'webhook';
 
-	polling?: LaunchPollingOptions;
-
-	webhook?: LaunchWebhookOptions & {
+	webhook?: Telegraf.LaunchOptions[ 'webhook' ] & {
 		/**
 		 * Webhook 最終的完整 URL，可被外部存取，用於呼叫 Telegram 介面自動設定網址
 		 */
@@ -45,7 +43,24 @@ export interface ConfigTS {
 		 * 紀錄檔檔名，如留空則只向螢幕輸出
 		 */
 		logfile: string;
+
+		/**
+		 * 記錄到某個Telegram頻道
+		 * BOT必須是那個頻道的管理員並且可以發訊息
+		 */
+		logToChannel?: number;
 	};
 
-	msgs: Record<'title' | 'thumb_url' | 'content' | 'wrap' | 'error', TextFile>
+	msgs: Record<'title' | 'thumb_url' | 'content' | 'wrap' | 'error', TextOrFile>;
+
+	/**
+	 * 硬封鎖用戶
+	 * 同時會封鎖指令和inline query
+	 */
+	blockFromID?: number[];
+
+	/**
+	 * 硬封鎖群組
+	 */
+	ignoreChatID?: number[];
 }
