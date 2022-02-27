@@ -1,0 +1,2 @@
+#!/bin/bash
+while true; do node ./build/src/index.js; done

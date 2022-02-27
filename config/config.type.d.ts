@@ -63,4 +63,9 @@ export interface ConfigTS {
 	 * 硬封鎖群組
 	 */
 	ignoreChatID?: number[];
+
+	/**
+	 * 在某個文件變更時自動重啟（以 exitCode 1 退出）
+	 */
+	reloadFile?: string;
 }

@@ -131,7 +131,7 @@ function getFormatText( text: string, ctx: Context, isSpecial?: boolean ): strin
 }
 
 function getRandomID(): string {
-	return Math.floor( +new Date() + Math.random() * 10000 ).toString( 16 );
+	return Math.floor( Date.now() + Math.random() * 10000 ).toString( 16 );
 }
 
 function buildInlineQuery( text: string, ctx: Context ): InlineQueryResult[] {
@@ -239,6 +239,16 @@ bot.command( 'ericadress', async function ( ctx ) {
 bot.catch( function ( err ) {
 	winston.error( 'TelegramBot error:', err );
 } );
+
+if ( config.reloadFile ) {
+	const file = path.normalize( config.reloadFile );
+	winston.info( Util.format( 'Register reload file "%s"', file ) );
+	fs.watch( file, function ( event ) {
+		winston.warn( Util.format( 'Reload file "%s" %s, exit.', file, event ) );
+		// eslint-disable-next-line no-process-exit
+		process.exit( 1 );
+	} );
+}
 
 if ( config.launchType === 'webhook' ) {
 	try {
