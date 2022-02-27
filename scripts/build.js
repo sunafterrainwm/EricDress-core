@@ -171,7 +171,7 @@ runCompilation()
 			}
 		}
 		if ( cnf.reloadFile ) {
-			const reloadFile = path.join( __dirname, '../config', cnf.reloadFile );
+			const reloadFile = path.isAbsolute( cnf.reloadFile ) ? path.normalize( cnf.reloadFile ) : path.join( __dirname, '../config', cnf.reloadFile );
 			log.write( 'found reloadFile "%s", try to reload it... ', reloadFile );
 			try {
 				fs.writeFileSync( reloadFile, new Date().toISOString() );

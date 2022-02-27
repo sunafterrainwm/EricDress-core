@@ -241,7 +241,7 @@ bot.catch( function ( err ) {
 } );
 
 if ( config.reloadFile ) {
-	const file = path.normalize( config.reloadFile );
+	const file = path.isAbsolute( config.reloadFile ) ? path.normalize( config.reloadFile ) : path.join( __dirname, __dirname.match( /build[\\/]src/ ) ? '../config' : '', config.reloadFile );
 	winston.info( Util.format( 'Register reload file "%s"', file ) );
 	fs.watch( file, function ( event ) {
 		winston.warn( Util.format( 'Reload file "%s" %s, exit.', file, event ) );
